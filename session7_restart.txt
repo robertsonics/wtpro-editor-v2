@@ -1,0 +1,6 @@
+This is a React + Vite project for editing WAV Trigger Pro 
+preset CSV files. Development is in progress — Sessions 1–6 
+are complete. Please read session1_prompt.txt for the full 
+specification, then read the current source files to 
+familiarise yourself with what has been built so far before 
+making any changes.

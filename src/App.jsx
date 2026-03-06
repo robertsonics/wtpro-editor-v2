@@ -4,12 +4,13 @@ import { parseCsv, parsePresetNumber } from './model/csvParser.js';
 import { serializeCsv } from './model/csvSerializer.js';
 import { FIELDS, validateRow } from './schema/fieldSchema.js';
 import { pushUndo, applyUndo, applyRedo, undoLabel, redoLabel } from './model/undoStack.js';
-import Toolbar       from './components/Toolbar.jsx';
-import CommentsPanel from './components/CommentsPanel.jsx';
-import AddNoteControl from './components/AddNoteControl.jsx';
-import NoteTree      from './components/NoteTree.jsx';
-import DetailPanel   from './components/DetailPanel.jsx';
-import NewPresetModal from './components/NewPresetModal.jsx';
+import Toolbar             from './components/Toolbar.jsx';
+import CommentsPanel       from './components/CommentsPanel.jsx';
+import AddNoteControl      from './components/AddNoteControl.jsx';
+import NoteTree            from './components/NoteTree.jsx';
+import DetailPanel         from './components/DetailPanel.jsx';
+import NewPresetModal      from './components/NewPresetModal.jsx';
+import FillSequentialModal from './components/FillSequentialModal.jsx';
 import './App.css';
 
 // ── Default action row for a newly added note ─────────────────────────────────
@@ -127,6 +128,10 @@ function docReducer(state, action) {
       return { ...state, comments: action.comments };
     }
 
+    case 'FILL_NOTES': {
+      return { ...state, noteActions: action.noteActions };
+    }
+
     case 'EDIT_PRESET_NUMBER': {
       return { ...state, presetNumber: action.value };
     }
@@ -153,6 +158,7 @@ export default function App() {
   // ── UI state ──
   const [isDirty,            setIsDirty]            = useState(false);
   const [showNewPresetModal, setShowNewPresetModal]  = useState(false);
+  const [showFillModal,      setShowFillModal]       = useState(false);
   const [expandedChannels,   setExpandedChannels]   = useState(new Set());
   const [expandedNotes,      setExpandedNotes]      = useState(new Set());
   const [selectedRowKey,     setSelectedRowKey]     = useState(null);
@@ -410,6 +416,15 @@ export default function App() {
     setShowNewPresetModal(true);
   }
 
+  function handleFillApply(newNoteActions, fromNote, toNote, channel) {
+    const chLabel = channel === 16 ? 'Omni' : `Ch ${channel}`;
+    dispatchWithUndo(
+      { type: 'FILL_NOTES', noteActions: newNoteActions },
+      `Fill notes ${fromNote}–${toNote} ${chLabel}`
+    );
+    setShowFillModal(false);
+  }
+
   // ── Derive selected row ───────────────────────────────────────────────────
 
   let selectedRow      = null;
@@ -472,6 +487,7 @@ export default function App() {
       <AddNoteControl
         noteActions={doc.noteActions}
         onAddNote={addNote}
+        onFillSequential={() => setShowFillModal(true)}
       />
 
       <NoteTree
@@ -501,6 +517,14 @@ export default function App() {
         <NewPresetModal
           onConfirm={handleNewPreset}
           onCancel={() => setShowNewPresetModal(false)}
+        />
+      )}
+
+      {showFillModal && (
+        <FillSequentialModal
+          noteActions={doc.noteActions}
+          onApply={handleFillApply}
+          onCancel={() => setShowFillModal(false)}
         />
       )}
     </div>

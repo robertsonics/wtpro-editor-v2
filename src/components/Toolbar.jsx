@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import AboutModal from './AboutModal.jsx';
 
 /**
  * Props:
@@ -28,7 +29,8 @@ export default function Toolbar({
   errorCount,
   isDirty,
 }) {
-  const [draft, setDraft] = useState(String(presetNumber));
+  const [draft,      setDraft]      = useState(String(presetNumber));
+  const [showAbout,  setShowAbout]  = useState(false);
   useEffect(() => { setDraft(String(presetNumber)); }, [presetNumber]);
 
   function commitPreset() {
@@ -76,12 +78,6 @@ export default function Toolbar({
         ↪ Redo
       </button>
 
-      <span className="toolbar-divider" />
-
-      <button className="toolbar-btn" disabled title="Coming in Session 7">
-        Fill Sequential
-      </button>
-
       <span className="toolbar-spacer" />
 
       <span className="toolbar-preset-label">Preset:</span>
@@ -101,6 +97,14 @@ export default function Toolbar({
           {errorCount} row{errorCount !== 1 ? 's' : ''} with errors
         </span>
       )}
+
+      <span className="toolbar-divider" />
+
+      <button className="toolbar-btn" onClick={() => setShowAbout(true)}>
+        About
+      </button>
+
+      {showAbout && <AboutModal onClose={() => setShowAbout(false)} />}
     </div>
   );
 }

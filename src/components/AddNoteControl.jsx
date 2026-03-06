@@ -6,7 +6,7 @@ import { noteName } from '../schema/fieldSchema.js';
  *   noteActions   Map<string, DataRow[]>
  *   onAddNote     (channel: number, note: number) => void
  */
-export default function AddNoteControl({ noteActions, onAddNote }) {
+export default function AddNoteControl({ noteActions, onAddNote, onFillSequential }) {
   const [channel, setChannel] = useState(16); // default: Omni
   const [note,    setNote]    = useState(60);
 
@@ -57,6 +57,10 @@ export default function AddNoteControl({ noteActions, onAddNote }) {
         title={isDuplicate ? `${noteKey} already exists` : undefined}
       >
         + Add Note
+      </button>
+
+      <button className="toolbar-btn" onClick={onFillSequential}>
+        Fill Sequential
       </button>
 
       {isDuplicate && (
