@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 
-const VERSION = 'v0.50';
+const VERSION = 'v0.51';
 
 /**
  * Props:

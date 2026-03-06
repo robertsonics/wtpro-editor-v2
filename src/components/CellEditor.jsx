@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ACTION_TYPES } from '../schema/fieldSchema.js';
+import { ACTION_TYPES, ACTION_TYPE_COLORS } from '../schema/fieldSchema.js';
 
 /**
  * Renders the correct input widget for a single action-row grid cell.
@@ -53,7 +53,7 @@ export default function CellEditor({ field, value, active, onCommit, isGain, com
         value={value ?? ''}
         onChange={e => onCommit(e.target.value)}
         tabIndex={0}
-        style={gainStyle}
+        style={{ ...gainStyle, color: ACTION_TYPE_COLORS[value] ?? 'inherit' }}
         onClick={e => e.stopPropagation()}
       >
         {ACTION_TYPES.map(t => (

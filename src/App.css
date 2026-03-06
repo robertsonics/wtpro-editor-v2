@@ -670,6 +670,14 @@
 }
 
 /* ── CellEditor — select ──────────────────────────────────────────────────── */
+.cell-editor-select option {
+  color: #e8e8e8;
+}
+
+.dp-select option {
+  color: #e8e8e8;
+}
+
 .cell-editor-select {
   width: 100%;
   background: transparent;

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ACTION_TYPES, ACTIVE_COLS, noteName } from '../schema/fieldSchema.js';
+import { ACTION_TYPES, ACTION_TYPE_COLORS, ACTIVE_COLS, noteName } from '../schema/fieldSchema.js';
 
 // ── Small reusable field widgets ─────────────────────────────────────────────
 
@@ -126,6 +126,7 @@ export default function DetailPanel({ row, onCommit, onClose }) {
               className="dp-input dp-select dp-select-wide"
               value={row.action_type}
               onChange={e => onCommit('action_type', e.target.value)}
+              style={{ color: ACTION_TYPE_COLORS[row.action_type] ?? 'inherit' }}
             >
               {ACTION_TYPES.map(t => (
                 <option key={t} value={t}>{t.replace(/^\d{2} - /, '')}</option>
