@@ -765,6 +765,21 @@
   min-height: 80px;
   max-height: 260px;
   overflow-y: auto;
+  position: relative;
+}
+
+.btn-close-detail {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  background: none;
+  border: none;
+  color: var(--color-muted);
+  font-size: 16px;
+  line-height: 1;
+  padding: 2px 5px;
+  cursor: pointer;
+  border-radius: 3px;
 }
 
 .detail-placeholder {

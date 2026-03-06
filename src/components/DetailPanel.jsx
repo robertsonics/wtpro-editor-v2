@@ -67,7 +67,7 @@ function CheckField({ label, value, onCommit }) {
  *   row      DataRow | null
  *   onCommit (key, value) => void
  */
-export default function DetailPanel({ row, onCommit }) {
+export default function DetailPanel({ row, onCommit, onClose }) {
   if (!row) {
     return (
       <div className="detail-panel">
@@ -101,25 +101,25 @@ export default function DetailPanel({ row, onCommit }) {
   const [bal, setBal] = useState(row.balance ?? 64);
   useEffect(() => { setBal(row.balance ?? 64); }, [row.balance]);
 
+  const chanLabel = row.midi_channel === 16 ? 'Omni' : `Ch ${row.midi_channel}`;
+  const noteLabel = `${row.midi_note}\u00a0\u00a0${noteName(row.midi_note)}`;
+
   return (
     <div className="detail-panel">
+      {/* ── Header: channel/note identity + close button ─────────── */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+        <span style={{ fontSize: '12px', color: 'var(--color-muted)', fontWeight: 'bold', letterSpacing: '0.03em' }}>
+          {chanLabel}&nbsp;&nbsp;&nbsp;{noteLabel}
+        </span>
+        <button className="btn-close-detail" title="Close panel" onClick={onClose}
+          style={{ position: 'static', fontSize: '16px', lineHeight: 1, padding: '2px 5px', background: 'none', border: 'none', color: 'var(--color-muted)', cursor: 'pointer', borderRadius: '3px' }}>
+          ×
+        </button>
+      </div>
       <div className="detail-form">
 
-        {/* ── Row 1: Channel + Action ──────────────────────────────── */}
+        {/* ── Row 1: Action ────────────────────────────────────────── */}
         <div className="dp-row">
-          <div className="dp-field">
-            <span className="dp-label">Chan</span>
-            <select
-              className="dp-input dp-select"
-              value={row.midi_channel}
-              onChange={e => onCommit('midi_channel', Number(e.target.value))}
-            >
-              {Array.from({ length: 17 }, (_, i) => (
-                <option key={i} value={i}>{i === 16 ? 'Omni' : i}</option>
-              ))}
-            </select>
-          </div>
-
           <div className="dp-field dp-field-wide">
             <span className="dp-label">Action</span>
             <select
@@ -131,11 +131,6 @@ export default function DetailPanel({ row, onCommit }) {
                 <option key={t} value={t}>{t}</option>
               ))}
             </select>
-          </div>
-
-          <div className="dp-field dp-field-note">
-            <span className="dp-label">Note</span>
-            <span className="dp-value">{row.midi_note}&nbsp;&nbsp;{noteName(row.midi_note)}</span>
           </div>
         </div>
 

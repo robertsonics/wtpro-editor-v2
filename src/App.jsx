@@ -4,7 +4,6 @@ import { parseCsv, parsePresetNumber } from './model/csvParser.js';
 import { serializeCsv } from './model/csvSerializer.js';
 import { FIELDS, validateRow } from './schema/fieldSchema.js';
 import { pushUndo, applyUndo, applyRedo, undoLabel, redoLabel } from './model/undoStack.js';
-import { SAMPLE_CSV, SAMPLE_PRESET_NUMBER } from './fixtures/sampleCsv.js';
 import Toolbar       from './components/Toolbar.jsx';
 import CommentsPanel from './components/CommentsPanel.jsx';
 import AddNoteControl from './components/AddNoteControl.jsx';
@@ -137,7 +136,7 @@ function docReducer(state, action) {
   }
 }
 
-const initialDoc = parseCsv(SAMPLE_CSV, SAMPLE_PRESET_NUMBER);
+const initialDoc = { presetNumber: 1, comments: [], noteActions: new Map() };
 
 // ── App ───────────────────────────────────────────────────────────────────────
 
@@ -490,10 +489,13 @@ export default function App() {
         onDeleteNote={deleteNote}
       />
 
-      <DetailPanel
-        row={selectedRow}
-        onCommit={onDetailCommit}
-      />
+      {selectedRow && (
+        <DetailPanel
+          row={selectedRow}
+          onCommit={onDetailCommit}
+          onClose={() => setSelectedRowKey(null)}
+        />
+      )}
 
       {showNewPresetModal && (
         <NewPresetModal
