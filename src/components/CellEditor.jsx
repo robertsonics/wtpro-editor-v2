@@ -57,7 +57,7 @@ export default function CellEditor({ field, value, active, onCommit, isGain, com
         onClick={e => e.stopPropagation()}
       >
         {ACTION_TYPES.map(t => (
-          <option key={t} value={t}>{t}</option>
+          <option key={t} value={t}>{t.replace(/^\d{2} - /, '')}</option>
         ))}
       </select>
     );

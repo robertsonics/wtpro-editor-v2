@@ -128,7 +128,7 @@ export default function DetailPanel({ row, onCommit, onClose }) {
               onChange={e => onCommit('action_type', e.target.value)}
             >
               {ACTION_TYPES.map(t => (
-                <option key={t} value={t}>{t}</option>
+                <option key={t} value={t}>{t.replace(/^\d{2} - /, '')}</option>
               ))}
             </select>
           </div>
