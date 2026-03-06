@@ -268,3 +268,64 @@ describe('validateRow – cross-field validation', () => {
   });
 });
 
+// ─── Cell-editor boundary cases ───────────────────────────────────────────────
+
+describe('validateRow – cell-editor boundary cases', () => {
+  it('accepts attack_ms exactly 99999 (upper boundary)', () => {
+    expect(validateRow({ ...validPlayRow, attack_ms: 99999 })).toHaveLength(0);
+  });
+
+  it('accepts release_ms exactly 0 (lower boundary)', () => {
+    expect(validateRow({ ...validPlayRow, release_ms: 0 })).toHaveLength(0);
+  });
+
+  it('accepts min_vel_gain exactly -100 (lower boundary)', () => {
+    expect(validateRow({ ...validPlayRow, min_vel_gain: -100, max_vel_gain: -100 })).toHaveLength(0);
+  });
+
+  it('accepts max_vel_gain exactly 0 (upper boundary)', () => {
+    expect(validateRow({ ...validPlayRow, max_vel_gain: 0 })).toHaveLength(0);
+  });
+
+  it('accepts balance exactly 0 (left boundary)', () => {
+    expect(validateRow({ ...validPlayRow, balance: 0 })).toHaveLength(0);
+  });
+
+  it('accepts balance exactly 127 (right boundary)', () => {
+    expect(validateRow({ ...validPlayRow, balance: 127 })).toHaveLength(0);
+  });
+
+  it('accepts track_preset exactly 1 for Play Note (min boundary)', () => {
+    expect(validateRow({ ...validPlayRow, track_preset: 1 })).toHaveLength(0);
+  });
+
+  it('accepts track_preset exactly 4095 for Stop Track (max boundary)', () => {
+    const row = {
+      ...validPlayRow,
+      action_type: '05 - Stop Track',
+      track_preset: 4095,
+      release_ms: 0,
+      pitch_offset: '', attack_ms: '', loop_flag: '', lock_flag: '',
+      pitch_bend_flag: '', min_velocity: '', max_velocity: '',
+      min_vel_gain: '', max_vel_gain: '', balance: '', comment: '',
+    };
+    expect(validateRow(row)).toHaveLength(0);
+  });
+
+  it('rejects NaN for midi_note (non-integer input)', () => {
+    expect(validateRow({ ...validPlayRow, midi_note: NaN }).length).toBeGreaterThan(0);
+  });
+
+  it('rejects non-integer float for track_preset (e.g. 1.5)', () => {
+    expect(validateRow({ ...validPlayRow, track_preset: 1.5 }).length).toBeGreaterThan(0);
+  });
+
+  it('accepts min_velocity === max_velocity === 0 (both at lower boundary)', () => {
+    expect(validateRow({ ...validPlayRow, min_velocity: 0, max_velocity: 0 })).toHaveLength(0);
+  });
+
+  it('accepts min_vel_gain === max_vel_gain === -100 (both at lower boundary)', () => {
+    expect(validateRow({ ...validPlayRow, min_vel_gain: -100, max_vel_gain: -100 })).toHaveLength(0);
+  });
+});
+

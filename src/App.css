@@ -52,7 +52,7 @@
   --w-maxv:   48px;
   --w-ming:   56px;
   --w-maxg:   56px;
-  --w-bal:    54px;
+  --w-bal:   140px;
   --w-cmt:   100px;
 
   /* Sticky left positions (cumulative: drag + chan + note) */
@@ -61,7 +61,7 @@
   --sticky-action: 180px; /* = w-drag + w-chan + w-note */
 
   /* Total min-width of the grid */
-  --grid-min-width: 1040px;
+  --grid-min-width: 1126px;
 }
 
 /* ── App shell ─────────────────────────────────────────────────────────────── */
@@ -362,4 +362,131 @@
   align-items: center;
   justify-content: center;
   cursor: grab;
+}
+
+/* ── Editable cell wrapper ─────────────────────────────────────────────────── */
+.cell-editable {
+  padding: 0 2px;
+}
+
+/* ── CellEditor — disabled/inactive ───────────────────────────────────────── */
+.cell-editor-disabled {
+  width: 100%;
+  height: 100%;
+  background: var(--bg-disabled);
+}
+
+/* ── CellEditor — number input ─────────────────────────────────────────────── */
+.cell-editor-number {
+  width: 100%;
+  background: transparent;
+  border: 1px solid transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 12px;
+  padding: 1px 3px;
+  border-radius: 2px;
+  -moz-appearance: textfield;
+}
+.cell-editor-number::-webkit-inner-spin-button,
+.cell-editor-number::-webkit-outer-spin-button {
+  opacity: 0.4;
+}
+.cell-editor-number:focus {
+  outline: none;
+  border-color: var(--color-border);
+  background: #1e1e1e;
+}
+.cell-editor-number.cell-editor-error {
+  border-color: #ff4444;
+}
+.cell-editor-number.cell-editor-error:focus {
+  border-color: #ff4444;
+}
+
+/* ── CellEditor — select ──────────────────────────────────────────────────── */
+.cell-editor-select {
+  width: 100%;
+  background: transparent;
+  border: 1px solid transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 11px;
+  padding: 1px 2px;
+  border-radius: 2px;
+  cursor: pointer;
+}
+.cell-editor-select:focus {
+  outline: none;
+  border-color: var(--color-border);
+  background: #1e1e1e;
+}
+
+/* ── CellEditor — checkbox ────────────────────────────────────────────────── */
+.cell-editor-flag {
+  cursor: pointer;
+  width: 14px;
+  height: 14px;
+  accent-color: var(--action-01);
+  flex-shrink: 0;
+}
+
+/* ── CellEditor — balance ─────────────────────────────────────────────────── */
+.cell-editor-balance {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  width: 100%;
+  min-width: 0;
+}
+
+.bal-label {
+  font-size: 10px;
+  color: var(--color-muted);
+  flex-shrink: 0;
+}
+
+.cell-editor-range {
+  flex: 1;
+  min-width: 0;
+  height: 4px;
+  cursor: pointer;
+  accent-color: var(--action-01);
+}
+
+.cell-editor-bal-num {
+  width: 34px;
+  flex-shrink: 0;
+  background: transparent;
+  border: 1px solid transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 11px;
+  padding: 1px 2px;
+  border-radius: 2px;
+  -moz-appearance: textfield;
+}
+.cell-editor-bal-num::-webkit-inner-spin-button,
+.cell-editor-bal-num::-webkit-outer-spin-button { display: none; }
+.cell-editor-bal-num:focus {
+  outline: none;
+  border-color: var(--color-border);
+  background: #1e1e1e;
+}
+
+/* ── CellEditor — text ────────────────────────────────────────────────────── */
+.cell-editor-text {
+  width: 100%;
+  background: transparent;
+  border: 1px solid transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 12px;
+  padding: 1px 3px;
+  border-radius: 2px;
+}
+.cell-editor-text:focus {
+  outline: none;
+  border-color: var(--color-border);
+  background: #1e1e1e;
 }
