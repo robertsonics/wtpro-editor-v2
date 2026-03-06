@@ -40,7 +40,7 @@ export default function ActionRow({ id, row, rowKey, selected, onSelect, onCommi
   const color  = ACTION_TYPE_COLORS[row.action_type] ?? '#888888';
 
   const style = {
-    borderLeft:  `3px solid ${color}`,
+    borderLeft:  `6px solid ${color}`,
     transform:   CSS.Transform.toString(transform),
     transition,
     opacity:     isDragging ? 0.4 : undefined,
@@ -186,6 +186,7 @@ export default function ActionRow({ id, row, rowKey, selected, onSelect, onCommi
           value={row.balance}
           active={isActive(15)}
           onCommit={v => commit('balance', v)}
+          compact={true}
         />
       </div>
       <div className="cell col-cmt cell-editable" style={{ flex: 1, minWidth: '100px' }}>

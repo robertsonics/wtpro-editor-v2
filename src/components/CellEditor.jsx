@@ -11,7 +11,7 @@ import { ACTION_TYPES } from '../schema/fieldSchema.js';
  *   onCommit (newValue) => void — called only when the value is valid
  *   isGain   boolean — render in amber colour (cols 13, 14)
  */
-export default function CellEditor({ field, value, active, onCommit, isGain }) {
+export default function CellEditor({ field, value, active, onCommit, isGain, compact = false }) {
   const [draft, setDraft] = useState('');
   const [error, setError] = useState(null);
 
@@ -67,6 +67,25 @@ export default function CellEditor({ field, value, active, onCommit, isGain }) {
 
   if (field.type === 'balance') {
     const numVal = value ?? 64;
+    if (compact) {
+      return (
+        <input
+          type="number"
+          className="cell-editor-number"
+          min={0}
+          max={127}
+          step={1}
+          value={numVal}
+          onChange={e => {
+            const n = parseInt(e.target.value, 10);
+            if (isFinite(n) && n >= 0 && n <= 127) onCommit(n);
+          }}
+          tabIndex={0}
+          style={gainStyle}
+          onClick={e => e.stopPropagation()}
+        />
+      );
+    }
     return (
       <div
         className="cell-editor-balance"

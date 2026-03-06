@@ -4,7 +4,7 @@ import { ACTION_TYPE_COLORS, noteName } from '../schema/fieldSchema.js';
  * Level-2 tree row: note expand/collapse header.
  * Shows note label, action count badge, colour dots, and Add/Delete buttons.
  */
-export default function NoteRow({ noteKey, noteNum, rows, expanded, onToggle }) {
+export default function NoteRow({ noteKey, noteNum, rows, expanded, onToggle, onAddAction, onDeleteNote }) {
   const MAX_ACTIONS = 8;
   const canAdd = rows.length < MAX_ACTIONS;
 
@@ -38,7 +38,7 @@ export default function NoteRow({ noteKey, noteNum, rows, expanded, onToggle }) 
         className="btn-sm"
         disabled={!canAdd}
         title={canAdd ? 'Add action' : 'Maximum 8 actions per note'}
-        onClick={e => e.stopPropagation()}
+        onClick={e => { e.stopPropagation(); onAddAction(); }}
       >
         + Add Action
       </button>
@@ -46,7 +46,7 @@ export default function NoteRow({ noteKey, noteNum, rows, expanded, onToggle }) 
       <button
         className="btn-sm btn-delete"
         title="Delete this note and all its actions"
-        onClick={e => e.stopPropagation()}
+        onClick={e => { e.stopPropagation(); onDeleteNote(); }}
       >
         × Delete Note
       </button>

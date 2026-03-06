@@ -32,6 +32,8 @@ export default function NoteTree({
   onReorderActions,
   onEditCell,
   onDeleteActionRow,
+  onAddAction,
+  onDeleteNote,
 }) {
   // Activate drag only after 5px movement so row-clicks still select rows
   const sensors = useSensors(
@@ -129,6 +131,8 @@ export default function NoteTree({
                         rows={rows}
                         expanded={noteExpanded}
                         onToggle={() => onToggleNote(noteKey)}
+                        onAddAction={() => onAddAction(noteKey)}
+                        onDeleteNote={() => onDeleteNote(noteKey)}
                       />
 
                       {noteExpanded && (
