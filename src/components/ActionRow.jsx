@@ -25,7 +25,7 @@ function trackField(actionType) {
  *   onSelect  () => void
  *   onCommit  (key, value) => void
  */
-export default function ActionRow({ id, row, rowKey, selected, onSelect, onCommit }) {
+export default function ActionRow({ id, row, rowKey, selected, onSelect, onCommit, onDelete }) {
   const {
     attributes,
     listeners,
@@ -45,7 +45,7 @@ export default function ActionRow({ id, row, rowKey, selected, onSelect, onCommi
     transition,
     opacity:     isDragging ? 0.4 : undefined,
     zIndex:      isDragging ? 10 : undefined,
-    position:    isDragging ? 'relative' : undefined,
+    position:    'relative',
   };
 
   const isActive = idx => active.has(idx);
@@ -188,7 +188,7 @@ export default function ActionRow({ id, row, rowKey, selected, onSelect, onCommi
           onCommit={v => commit('balance', v)}
         />
       </div>
-      <div className="cell col-cmt cell-editable">
+      <div className="cell col-cmt cell-editable" style={{ flex: 1, minWidth: '100px' }}>
         <CellEditor
           field={FIELD_BY_INDEX[16]}
           value={row.comment}
@@ -196,6 +196,15 @@ export default function ActionRow({ id, row, rowKey, selected, onSelect, onCommi
           onCommit={v => commit('comment', v)}
         />
       </div>
+
+      {/* Delete button — overlaid at far right, visible on row hover */}
+      <button
+        className="btn-del-action"
+        title="Delete this action row"
+        onClick={e => { e.stopPropagation(); onDelete(); }}
+      >
+        ×
+      </button>
     </div>
   );
 }

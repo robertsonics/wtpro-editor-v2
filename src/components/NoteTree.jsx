@@ -31,6 +31,7 @@ export default function NoteTree({
   onSelectRow,
   onReorderActions,
   onEditCell,
+  onDeleteActionRow,
 }) {
   // Activate drag only after 5px movement so row-clicks still select rows
   const sensors = useSensors(
@@ -79,7 +80,7 @@ export default function NoteTree({
             <div className="cell col-ming">MinG</div>
             <div className="cell col-maxg">MaxG</div>
             <div className="cell col-bal">Bal</div>
-            <div className="cell col-cmt">Cmt</div>
+            <div className="cell col-cmt" style={{ flex: 1, minWidth: '100px' }}>Cmt</div>
           </div>
 
           {/* ── Channel rows ─────────────────────────────────────────────── */}
@@ -146,6 +147,7 @@ export default function NoteTree({
                                 selected={selectedRowKey === rowKey}
                                 onSelect={() => onSelectRow(rowKey)}
                                 onCommit={(key, value) => onEditCell(noteKey, idx, key, value)}
+                                onDelete={() => onDeleteActionRow(noteKey, idx)}
                               />
                             );
                           })}
