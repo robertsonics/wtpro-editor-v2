@@ -1,42 +1,365 @@
-#root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
+/* ── CSS Custom Properties ─────────────────────────────────────────────────── */
+:root {
+  /* Background colours */
+  --bg-page:          #1a1a1a;
+  --bg-tree-row:      #242424;
+  --bg-tree-row-alt:  #2a2a2a;
+  --bg-channel-hdr:   #2a2a2a;
+  --bg-note-hdr:      #262626;
+  --bg-action-row:    #242424;
+  --bg-selected:      #2a3a4a;
+  --bg-grid-hdr:      #1f1f1f;
+  --bg-detail:        #1e1e1e;
+  --bg-disabled:      #1a1a1a;
+
+  /* Text colours */
+  --color-text:         #e8e8e8;
+  --color-muted:        #888888;
+  --color-disabled:     #3a3a3a;
+  --color-gain:         #ffb347;
+  --color-error:        #ff4444;
+
+  /* Border */
+  --color-border: #3a3a3a;
+
+  /* Action-type stripe / dot colours */
+  --action-01: #4a9eff;
+  --action-02: #4adf7f;
+  --action-03: #4adfd0;
+  --action-04: #a04adf;
+  --action-05: #df8f4a;
+  --action-06: #df4a4a;
+  --action-07: #dfdf4a;
+
+  /* Row heights */
+  --h-channel: 40px;
+  --h-note:    36px;
+  --h-action:  36px;
+
+  /* Grid column widths */
+  --w-drag:   40px;   /* also provides the action-row visual indent */
+  --w-chan:   56px;
+  --w-note:   84px;
+  --w-action: 140px;
+  --w-track:  60px;
+  --w-pitch:  60px;
+  --w-atk:    54px;
+  --w-rel:    54px;
+  --w-loop:   44px;
+  --w-lock:   44px;
+  --w-bend:   50px;
+  --w-minv:   48px;
+  --w-maxv:   48px;
+  --w-ming:   56px;
+  --w-maxg:   56px;
+  --w-bal:    54px;
+  --w-cmt:   100px;
+
+  /* Sticky left positions (cumulative: drag + chan + note) */
+  --sticky-chan:   40px;   /* = w-drag */
+  --sticky-note:  96px;   /* = w-drag + w-chan */
+  --sticky-action: 180px; /* = w-drag + w-chan + w-note */
+
+  /* Total min-width of the grid */
+  --grid-min-width: 1040px;
 }
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
+/* ── App shell ─────────────────────────────────────────────────────────────── */
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--bg-page);
+  color: var(--color-text);
+  font-family: 'Consolas', 'Courier New', monospace;
+  font-size: 12px;
 }
 
-@keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+/* ── Toolbar placeholder ───────────────────────────────────────────────────── */
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  background: var(--bg-grid-hdr);
+  border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
+  font-size: 13px;
+  font-weight: bold;
+  color: var(--color-text);
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
-  }
+.toolbar-preset {
+  color: var(--color-muted);
+  font-weight: normal;
+  margin-left: 8px;
 }
 
-.card {
-  padding: 2em;
+/* ── Tree scroll container ─────────────────────────────────────────────────── */
+.tree-scroller {
+  flex: 1;
+  overflow-x: auto;
+  overflow-y: auto;
+  min-height: 0;
 }
 
-.read-the-docs {
-  color: #888;
+.tree-inner {
+  min-width: var(--grid-min-width);
+}
+
+/* ── Grid column header row ────────────────────────────────────────────────── */
+.grid-header {
+  display: flex;
+  align-items: center;
+  height: 28px;
+  background: var(--bg-grid-hdr);
+  border-bottom: 2px solid var(--color-border);
+  position: sticky;
+  top: 0;
+  z-index: 4;
+  min-width: var(--grid-min-width);
+}
+
+.grid-header .cell {
+  color: var(--color-muted);
+  font-weight: bold;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.grid-header .sticky-chan   { background: var(--bg-grid-hdr); z-index: 5; }
+.grid-header .sticky-note   { background: var(--bg-grid-hdr); z-index: 5; }
+.grid-header .sticky-action { background: var(--bg-grid-hdr); z-index: 5; }
+
+/* ── Shared grid cell base ─────────────────────────────────────────────────── */
+.cell {
+  padding: 4px 8px;
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex-shrink: 0;
+  border-right: 1px solid var(--color-border);
+  height: 100%;
+}
+
+.cell:last-child {
+  border-right: none;
+}
+
+/* ── Column width classes ──────────────────────────────────────────────────── */
+.col-drag   { width: var(--w-drag); }
+.col-chan   { width: var(--w-chan); }
+.col-note   { width: var(--w-note); }
+.col-action { width: var(--w-action); }
+.col-track  { width: var(--w-track); }
+.col-pitch  { width: var(--w-pitch); }
+.col-atk    { width: var(--w-atk); }
+.col-rel    { width: var(--w-rel); }
+.col-loop   { width: var(--w-loop); justify-content: center; }
+.col-lock   { width: var(--w-lock); justify-content: center; }
+.col-bend   { width: var(--w-bend); justify-content: center; }
+.col-minv   { width: var(--w-minv); }
+.col-maxv   { width: var(--w-maxv); }
+.col-ming   { width: var(--w-ming); color: var(--color-gain); }
+.col-maxg   { width: var(--w-maxg); color: var(--color-gain); }
+.col-bal    { width: var(--w-bal); }
+.col-cmt    { width: var(--w-cmt); }
+
+/* ── Sticky column positioning ─────────────────────────────────────────────── */
+.sticky-chan {
+  position: sticky;
+  left: var(--sticky-chan);
+  z-index: 2;
+}
+.sticky-note {
+  position: sticky;
+  left: var(--sticky-note);
+  z-index: 2;
+}
+.sticky-action {
+  position: sticky;
+  left: var(--sticky-action);
+  z-index: 2;
+}
+
+/* ── Channel row ───────────────────────────────────────────────────────────── */
+.channel-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: var(--h-channel);
+  background: var(--bg-channel-hdr);
+  border-bottom: 1px solid var(--color-border);
+  padding: 0 10px;
+  cursor: pointer;
+  user-select: none;
+  min-width: var(--grid-min-width);
+}
+
+.channel-row:hover {
+  background: #303030;
+}
+
+/* ── Note row ──────────────────────────────────────────────────────────────── */
+.note-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: var(--h-note);
+  background: var(--bg-note-hdr);
+  border-bottom: 1px solid var(--color-border);
+  padding: 0 10px 0 20px;
+  cursor: pointer;
+  user-select: none;
+  min-width: var(--grid-min-width);
+}
+
+.note-row:hover {
+  background: #2c2c2c;
+}
+
+/* ── Action row ────────────────────────────────────────────────────────────── */
+.action-row {
+  display: flex;
+  align-items: stretch;
+  height: var(--h-action);
+  background: var(--bg-action-row);
+  border-bottom: 1px solid var(--color-border);
+  cursor: pointer;
+  min-width: var(--grid-min-width);
+}
+
+.action-row:hover {
+  background: #282828;
+}
+
+.action-row.selected {
+  background: var(--bg-selected);
+}
+
+/* Sticky cell backgrounds — must match row background to cover scrolled content */
+.action-row .sticky-chan,
+.action-row .sticky-note,
+.action-row .sticky-action {
+  background: var(--bg-action-row);
+}
+
+.action-row:hover .sticky-chan,
+.action-row:hover .sticky-note,
+.action-row:hover .sticky-action {
+  background: #282828;
+}
+
+.action-row.selected .sticky-chan,
+.action-row.selected .sticky-note,
+.action-row.selected .sticky-action {
+  background: var(--bg-selected);
+}
+
+/* Disabled (inactive) cell */
+.cell-disabled {
+  background: var(--bg-disabled);
+  color: var(--color-disabled);
+}
+
+/* ── Chevron ───────────────────────────────────────────────────────────────── */
+.chevron {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  color: var(--color-muted);
+  font-size: 10px;
+  flex-shrink: 0;
+  transition: transform 0.15s;
+}
+
+.chevron.open {
+  transform: rotate(90deg);
+}
+
+/* ── Labels ────────────────────────────────────────────────────────────────── */
+.channel-label {
+  font-weight: bold;
+  font-size: 13px;
+  color: var(--color-text);
+  min-width: 48px;
+}
+
+.note-label {
+  font-size: 12px;
+  color: var(--color-text);
+  min-width: 72px;
+}
+
+/* ── Badges ────────────────────────────────────────────────────────────────── */
+.badge {
+  font-size: 11px;
+  color: var(--color-muted);
+  background: rgba(255,255,255,0.06);
+  border-radius: 3px;
+  padding: 1px 5px;
+  flex-shrink: 0;
+}
+
+.badge.empty {
+  color: #555;
+}
+
+/* ── Colour dots ───────────────────────────────────────────────────────────── */
+.dot-row {
+  display: flex;
+  gap: 3px;
+  align-items: center;
+  flex-wrap: nowrap;
+  overflow: hidden;
+  max-width: 200px;
+}
+
+.dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* ── Note row buttons ──────────────────────────────────────────────────────── */
+.btn-sm {
+  padding: 1px 7px;
+  font-size: 11px;
+  font-family: inherit;
+  background: rgba(255,255,255,0.08);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  border-radius: 3px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.btn-sm:hover:not(:disabled) {
+  background: rgba(255,255,255,0.14);
+}
+
+.btn-sm:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.btn-delete {
+  color: var(--action-06);
+  border-color: rgba(223, 74, 74, 0.4);
+}
+
+/* ── Drag handle ───────────────────────────────────────────────────────────── */
+.drag-handle {
+  color: var(--color-disabled);
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: grab;
 }
