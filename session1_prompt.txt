@@ -1,0 +1,625 @@
+================================================================================
+CLAUDE CODE PROMPT v2 — WAV Trigger Pro Preset Editor
+React + Vite, single self-contained index.html output
+================================================================================
+Paste this entire file into Claude Code as your opening prompt.
+Replace the three [paste ...] placeholders at the bottom with the actual
+contents of the corresponding CSV files before starting.
+
+IMPORTANT NOTES FOR CLAUDE CODE:
+- Use React 18 + Vite only. No Svelte. No other frameworks.
+- Use plain useState/useReducer for ALL state. No external state libraries.
+- Session 1 files (fieldSchema.js, csvParser.js, csvSerializer.js, tests)
+  are already present in src/schema/, src/model/, src/tests/ and all tests
+  pass. Do not regenerate or modify them unless a bug is found.
+- Work on one session at a time. Stop at the end of each session.
+================================================================================
+
+
+════════════════════════════════════════════════════════════════════════════════
+CSV FORMAT  (ground truth from real files)
+════════════════════════════════════════════════════════════════════════════════
+
+- Line endings: CRLF (\r\n) — must be preserved on save
+- No header row. Row 0 is not special.
+- Every row has exactly 17 comma-separated fields (columns 0–16)
+- COMMENT rows: column 0 ≠ "#NOTE"
+    → Preserve the entire raw line verbatim
+    → Blank separator rows: ,,,,,,,,,,,,,,,, (16 commas, 17 empty fields)
+- DATA rows: column 0 = "#NOTE", always exactly 17 fields
+- File named set_nnnn.csv where nnnn is a 4-digit preset number
+  with leading zeros e.g. set_0001.csv
+
+
+════════════════════════════════════════════════════════════════════════════════
+COLUMN SCHEMA  (17 columns, indices 0–16)
+════════════════════════════════════════════════════════════════════════════════
+
+col 0:  sentinel        Fixed string "#NOTE". Never shown as a column in UI.
+
+col 1:  midi_note       int, 0–127.
+                        Display as "60  C4" (number + two spaces + note name).
+                        Note name helper:
+                          const NAMES = ['C','C#','D','D#','E','F','F#','G',
+                                         'G#','A','A#','B'];
+                          const noteName = n =>
+                            NAMES[n % 12] + (Math.floor(n / 12) - 1);
+
+col 2:  midi_channel    int, 0–16.
+                        0–15 = specific MIDI channel.
+                        16   = Omni (respond to any channel).
+                        Display 16 as "Omni" in the UI.
+
+col 3:  action_type     Enum. Stored and serialised as full label string:
+                          "01 - Play Note"
+                          "02 - Trigger Type 1"
+                          "03 - Trigger Type 2"
+                          "04 - Trigger Type 3"
+                          "05 - Stop Track"
+                          "06 - Stop All"
+                          "07 - Load Preset"
+                        Parser reads only the leading 2-digit number.
+                        Always serialise the full label string exactly.
+
+col 4:  track_preset    int.
+                        Actions 01–05: track number, 1–4095.
+                        Action 07:     preset number, 1–9999.
+                        Action 06:     empty string "".
+
+col 5:  pitch_offset    int, -700 to +700 (cents; 100 cents = 1 semitone).
+                        Empty string "" for actions 05, 06, 07.
+
+col 6:  attack_ms       int, 0–99999 (milliseconds).
+                        Empty string "" for actions 05, 06, 07.
+
+col 7:  release_ms      int, 0–99999 (milliseconds).
+                        Empty string "" for action 06.
+
+col 8:  loop_flag       int, 0 or 1. Render as checkbox. Label: "Loop".
+
+col 9:  lock_flag       int, 0 or 1. Render as checkbox. Label: "Lock".
+
+col 10: pitch_bend_flag int, 0 or 1. Render as checkbox. Label: "Pitch Bend".
+
+col 11: min_velocity    int, 0–127.
+
+col 12: max_velocity    int, 0–127.
+                        Validate: min_velocity ≤ max_velocity.
+
+col 13: min_vel_gain    float, -100.0 to 0.0 (dB).
+                        Validate: min_vel_gain ≤ max_vel_gain.
+                        Equal values valid (= fixed volume).
+
+col 14: max_vel_gain    float, -100.0 to 0.0 (dB).
+
+col 15: balance         int, 0–127.
+                        0=full left, 64=center, 127=full right.
+                        Render as horizontal range slider with L/R labels
+                        plus numeric input for precision entry.
+                        Visual centre detent indicator at value 64.
+
+col 16: comment         Free text. Preserve if present. Always empty in
+                        practice on #NOTE rows but do not discard.
+
+
+════════════════════════════════════════════════════════════════════════════════
+ACTIVE COLUMNS BY ACTION TYPE
+════════════════════════════════════════════════════════════════════════════════
+
+All 17 columns always written on save. Empty string "" for inapplicable cols.
+In UI: disable and visually grey out inapplicable cells.
+
+  Actions 01–04:    all columns editable
+  Action 05:        editable: cols 1,2,3,4,7 — disabled: cols 5,6,8–16
+  Action 06:        editable: cols 1,2,3     — disabled: cols 4–16
+  Action 07:        editable: cols 1,2,3,4   — disabled: cols 5–16
+
+
+════════════════════════════════════════════════════════════════════════════════
+CROSS-FIELD VALIDATION
+════════════════════════════════════════════════════════════════════════════════
+
+- min_velocity ≤ max_velocity  (both 0–127)
+- min_vel_gain ≤ max_vel_gain  (both -100.0 to 0.0; equal values valid)
+- All per-column bounds as specified above
+- Save blocked when any data row has validation errors
+
+
+════════════════════════════════════════════════════════════════════════════════
+DOCUMENT STRUCTURE
+════════════════════════════════════════════════════════════════════════════════
+
+The document has two independent sections:
+
+────────────────────────────────────────
+1. COMMENTS SECTION
+────────────────────────────────────────
+
+All non-#NOTE rows from the imported file, in original order.
+Rendered as a plain <textarea> in a collapsible panel above the tree.
+Panel header shows line count and collapse/expand chevron.
+
+The "Do not edit this block" legend found in Google Sheets exports
+appears here as ordinary text. User may delete it. Do NOT auto-generate
+this block on save.
+
+Serialisation:
+  Non-empty line → text in col 0 + 16 trailing commas
+  Empty line     → 16 commas (blank separator row)
+
+────────────────────────────────────────
+2. NOTE ASSIGNMENTS — THREE-LEVEL TREE
+────────────────────────────────────────
+
+Structure: Channel → Note → Actions
+
+LEVEL 1 — CHANNEL ROWS (17 rows total, always visible)
+  - Omni (channel 16) shown first, at the top
+  - Channels 0–15 shown below in numeric order
+  - Each channel row shows:
+      • Expand/collapse chevron (left)
+      • Channel label: "Ch 0", "Ch 1" ... "Ch 15", "Omni"
+      • Count badge: "N notes, M actions"
+      • Colour dot summary: one dot per unique action type present
+        in this channel's assignments
+  - Default state on load: ALL channel rows collapsed
+  - Channels with no assignments are still shown but badge reads "empty"
+
+LEVEL 2 — NOTE ROWS (visible when parent channel is expanded)
+  - Show ONLY notes that have at least one action assigned to this channel
+  - Each note row shows:
+      • Expand/collapse chevron (left, indented)
+      • Note label: "60  C4" (number + name)
+      • Count badge: "N actions"
+      • Colour dots: one per action row, coloured by action type
+      • [+ Add Action] button — disabled when note has 8 actions
+      • [× Delete Note] button — removes all actions for this
+        note/channel combination, with confirmation dialog
+  - Default state on load: all note rows collapsed
+
+LEVEL 3 — ACTION ROWS (visible when parent note is expanded)
+  - Compact grid row showing all field values
+  - Drag handle on left for drag-and-drop reordering within the note group
+    (use @dnd-kit/sortable for drag and drop)
+  - Clicking a row selects it and populates the Detail Panel
+  - Left border stripe coloured by action type
+  - Disabled cells visually greyed out per action type rules
+
+GRID COLUMNS (displayed left to right, col 0 sentinel never shown):
+  [drag] | Chan | Note | Action | Track | Pitch | Atk | Rel |
+  Loop | Lock | Bend | MinV | MaxV | MinG | MaxG | Bal | Cmt
+
+Sticky/frozen on horizontal scroll: Chan, Note, Action always visible.
+
+COLUMN HEADERS (abbreviated):
+  Chan | Note | Action | Track | Pitch | Atk | Rel | Loop | Lock |
+  Bend | MinV | MaxV | MinG | MaxG | Bal | Cmt
+
+────────────────────────────────────────
+3. DETAIL PANEL (below the tree, always visible)
+────────────────────────────────────────
+
+Shows full labelled form for the currently selected action row.
+Updates live — changes reflect immediately in the grid row.
+Editing a grid cell also updates the detail panel.
+When no row selected: show "Select an action row to edit its details."
+
+Form layout (grouped by meaning):
+
+  Row 1:  Channel [select, shows "Omni" for 16]
+          Action  [select from enum]
+
+  Row 2:  Track / Preset [number — label changes by action type]
+          Pitch Offset   [number, cents] — hidden for actions 05,06,07
+
+  Row 3:  Attack  [number, ms] — hidden for actions 05,06,07
+          Release [number, ms] — hidden for action 06
+
+  Row 4:  [□ Loop]  [□ Lock]  [□ Pitch Bend]
+          — hidden for actions 05,06,07
+
+  Row 5:  Velocity  Min [____] ———range——— Max [____]
+          — hidden for actions 05,06,07
+
+  Row 6:  Gain (dB) Min [____] ░░░░░░░░░░ Max [____]
+          — hidden for actions 05,06,07
+          — both fields in amber colour #ffb347
+
+  Row 7:  Balance  L ————●———— R  [____]
+          — hidden for actions 05,06,07
+
+  Row 8:  Comment [text input]
+
+────────────────────────────────────────
+4. ADD NOTE CONTROL (above the tree)
+────────────────────────────────────────
+
+  Channel: [select 0–16, shows "Omni" for 16]
+  Note:    [number input 0–127 with live note name alongside]
+  [Add Note] button
+
+  Disabled if that channel+note combination already exists.
+  New note gets one default action row:
+    channel = selected channel
+    action  = "01 - Play Note"
+    track=1, pitch=0, attack=0, release=0
+    loop=0, lock=0, pitch_bend=0
+    min_vel=1, max_vel=127
+    min_gain=-20, max_gain=0, balance=64
+
+────────────────────────────────────────
+5. NEW PRESET (toolbar button)
+────────────────────────────────────────
+
+  - Prompts for a 4-digit preset number (1–9999)
+  - If current document has unsaved changes, warns user first
+  - Creates a completely empty document:
+      • Empty comments section
+      • All 17 channel rows present but empty (no notes, no actions)
+  - Sets the preset number for save filename
+
+────────────────────────────────────────
+6. FILL SEQUENTIAL NOTES (toolbar button → modal dialog)
+────────────────────────────────────────
+
+  From note:          [number input 0–127]  [live note name]
+  To note:            [number input 0–127]  [live note name]
+  Channel:            [select 0–16]
+  Action type:        [select from enum]
+  Start track:        [number input 1–4095]
+  Increment track by: [number input, default 1, min 0]
+  Start pitch offset: [number input -700 to +700]
+  Increment pitch by: [number input, default 0]
+
+  Copy all other settings from:
+    Channel [select]  Note [number input]  [live note name]
+  (copies attack, release, flags, velocity, gain, balance verbatim)
+
+  Conflict handling:
+    ● Add as new action alongside existing
+    ○ Replace existing actions of this type for these notes
+
+  [Preview] [Apply] [Cancel]
+
+  Preview: scrollable list of rows to be created/modified.
+    Flags notes that already have 8 actions (will be skipped).
+  Apply: entire operation is ONE undo step.
+  Apply disabled until Preview has been run at least once.
+
+
+════════════════════════════════════════════════════════════════════════════════
+SAVE ORDER
+════════════════════════════════════════════════════════════════════════════════
+
+CSV output:
+  1. All comment section lines (in display order)
+  2. One blank separator row: ,,,,,,,,,,,,,,,,
+  3. All #NOTE rows, sorted by:
+       Primary:   channel number ascending (Omni/16 last)
+       Secondary: note number ascending
+       Tertiary:  user drag-and-drop order within note group
+
+
+════════════════════════════════════════════════════════════════════════════════
+UNDO / REDO
+════════════════════════════════════════════════════════════════════════════════
+
+- Full undo/redo stack, max depth 50
+- Ctrl+Z = undo, Ctrl+Y or Ctrl+Shift+Z = redo
+- Toolbar [Undo] [Redo] buttons, disabled when stack empty
+- Tooltip on each button shows operation name:
+    "Undo: Edit Note 60 Release"
+    "Undo: Fill notes 46–86"
+    "Undo: Delete Note 72  Ch 0"
+
+Granularity:
+  Single cell edit           → 1 step
+  Fill Sequential            → 1 step (entire operation)
+  Add Note                   → 1 step
+  Delete Note                → 1 step
+  Add Action row             → 1 step
+  Delete Action row          → 1 step
+  Drag reorder               → 1 step
+  Edit comment text          → 1 step per edit (debounced 500ms)
+
+File open and New Preset do NOT push to undo stack.
+
+
+════════════════════════════════════════════════════════════════════════════════
+LOOK AND FEEL
+════════════════════════════════════════════════════════════════════════════════
+
+Framework: React 18. Style with plain CSS modules or inline styles.
+Do NOT use Tailwind, Material UI, or any CSS framework.
+
+Theme: Dark
+  Page background:     #1a1a1a
+  Tree row:            #242424
+  Tree row alternate:  #2a2a2a
+  Channel header row:  #2a2a2a
+  Note header row:     #262626
+  Action row:          #242424
+  Selected row:        #2a3a4a
+  Grid column header:  #1f1f1f
+  Detail panel bg:     #1e1e1e
+  Border:              #3a3a3a
+  Text:                #e8e8e8
+  Muted text:          #888888
+  Disabled cell bg:    #1a1a1a
+  Disabled cell text:  #3a3a3a
+
+Density: Comfortable
+  Channel row height:  40px
+  Note row height:     36px
+  Action row height:   36px
+  Cell padding:        4px 8px
+
+Indentation:
+  Channel rows: no indent
+  Note rows:    indent 20px
+  Action rows:  indent 40px
+
+Action type colour — 3px solid left border on action rows,
+and matching dot in note/channel headers:
+  01 - Play Note:      #4a9eff
+  02 - Trigger Type 1: #4adf7f
+  03 - Trigger Type 2: #4adfd0
+  04 - Trigger Type 3: #a04adf
+  05 - Stop Track:     #df8f4a
+  06 - Stop All:       #df4a4a
+  07 - Load Preset:    #dfdf4a
+
+Gain fields (MinG, MaxG): text colour #ffb347 (amber)
+  in both grid cells and detail panel.
+
+Balance field:
+  Grid: compact range slider filling cell, L/R labels, no numeric display
+  Detail panel: full slider + L/R labels + numeric input
+  Visual detent indicator at centre (value 64)
+
+Validation errors:
+  Invalid cell:    red border #ff4444
+  Hover tooltip:   specific error message
+  Error rows:      subtle red left margin tint
+  Toolbar badge:   "N rows have errors" in red
+                   clicking badge jumps to first error row
+  Save button:     disabled and dimmed when errors exist
+
+Toolbar (left to right):
+  [New Preset] [Open CSV] [Save CSV] | [Undo] [Redo] |
+  [Fill Sequential] | Preset: [____] | <error badge>
+
+Window/tab title:
+  "WTPro Editor" when clean
+  "WTPro Editor *" when unsaved changes exist
+
+
+════════════════════════════════════════════════════════════════════════════════
+REACT STATE ARCHITECTURE
+════════════════════════════════════════════════════════════════════════════════
+
+Use useReducer at the App level for all document state.
+Use useState for purely local UI state (expand/collapse, selected row, modals).
+
+Document state shape:
+  {
+    presetNumber: number,          // 1–9999
+    comments: string[],            // one string per comment line
+    // Keyed by "channel:noteNum" e.g. "16:60"
+    noteActions: Map<string, DataRow[]>
+  }
+
+UI state (local useState, NOT in the reducer):
+  expandedChannels: Set<number>    // which channel rows are expanded
+  expandedNotes: Set<string>       // which "channel:noteNum" notes are expanded
+  selectedRowKey: string | null    // currently selected action row
+  undoStack: []                    // array of document state snapshots
+  redoStack: []                    // array of document state snapshots
+
+CRITICAL: expandedChannels and expandedNotes must be plain React useState
+with Set replacement on every update (never mutate the Set in place):
+  const [expandedChannels, setExpandedChannels] = useState(new Set());
+  
+  function toggleChannel(ch) {
+    setExpandedChannels(prev => {
+      const next = new Set(prev);
+      next.has(ch) ? next.delete(ch) : next.add(ch);
+      return next;
+    });
+  }
+
+This pattern is mandatory. Do not use useRef, do not mutate Sets or Maps
+directly, always return new Set/Map instances from state updaters.
+
+
+════════════════════════════════════════════════════════════════════════════════
+COMPONENT ARCHITECTURE
+════════════════════════════════════════════════════════════════════════════════
+
+src/schema/fieldSchema.js         (already exists — do not modify)
+src/model/csvParser.js            (already exists — do not modify)
+src/model/csvSerializer.js        (already exists — do not modify)
+src/model/undoStack.js            — undo/redo helper functions
+
+src/components/
+  App.jsx                         — root, all state, reducer, keyboard shortcuts
+  Toolbar.jsx                     — New, Open, Save, Undo, Redo, Fill, error badge
+  CommentsPanel.jsx               — collapsible textarea for comment rows
+  AddNoteControl.jsx              — channel select + note input + Add button
+  NoteTree.jsx                    — renders the 3-level channel/note/action tree
+  ChannelRow.jsx                  — level 1: channel expand/collapse header
+  NoteRow.jsx                     — level 2: note expand/collapse header
+  ActionRow.jsx                   — level 3: single action grid row with drag handle
+  CellEditor.jsx                  — renders correct input per column type
+  DetailPanel.jsx                 — full form for selected action row
+  FillSequentialModal.jsx         — fill dialog with preview and apply
+  NewPresetModal.jsx              — prompt for preset number on New Preset
+
+src/App.css                       — global dark theme CSS variables
+
+
+════════════════════════════════════════════════════════════════════════════════
+CELL EDITOR TYPES
+════════════════════════════════════════════════════════════════════════════════
+
+int / float  → <input type="number" min max step />
+               Red border on invalid value. Does not commit invalid values.
+enum         → <select> with full label options
+flag         → <input type="checkbox" />
+balance      → <input type="range" min=0 max=127 /> with L/R labels
+               + <input type="number" /> for precision
+               Visual tick mark or thumb style indicating centre at 64
+disabled     → <div> styled as greyed out, no input rendered
+fixed        → plain text display (sentinel column, never shown)
+
+Tab / Shift-Tab navigation skips disabled cells.
+Tooltip on hover of error cell shows the specific validation message.
+
+
+════════════════════════════════════════════════════════════════════════════════
+TESTS
+════════════════════════════════════════════════════════════════════════════════
+
+src/tests/roundtrip.test.js       (already exists — must still pass)
+src/tests/validation.test.js      (already exists — must still pass)
+
+New tests to add:
+
+src/tests/groups.test.js
+  - Note group with 8 actions → Add Action disabled
+  - Delete Note → group removed, channel+note available again
+  - Drag reorder → serialised in new order
+  - Add Note with duplicate channel+note → rejected
+  - Add Note 0 Ch 0 and Note 127 Ch 15 → accepted (boundary values)
+  - Channel grouping: two rows same note different channel →
+    appear in separate channel groups
+
+src/tests/fill.test.js
+  - Fill notes 48–52, track start 48, increment 1 →
+    notes 48,49,50,51,52 created with tracks 48,49,50,51,52
+  - Fill with pitch increment 100 → pitch offsets correct
+  - Fill where note already has 8 actions →
+    that note skipped, preview flagged it, others created
+  - Fill replace mode → matching action type replaced,
+    other types preserved
+  - Undo fill → entire operation reversed in one step
+
+src/tests/undo.test.js
+  - Edit cell → undo → value restored
+  - Add Note → undo → note removed
+  - Delete Note → undo → note and all actions restored
+  - Fill → undo → all created rows removed in one step
+  - Undo at depth 50 → oldest step not available
+  - Redo after undo → state re-applied
+
+
+════════════════════════════════════════════════════════════════════════════════
+VITE CONFIG
+════════════════════════════════════════════════════════════════════════════════
+
+vite.config.js must produce a single self-contained index.html:
+  - All JS and CSS inlined (no separate chunk files)
+  - No external CDN references
+  - Must open correctly from file:// protocol with no server
+
+Use vite-plugin-singlefile to achieve this:
+  npm install vite-plugin-singlefile --save-dev
+
+vite.config.js:
+  import { defineConfig } from 'vite'
+  import react from '@vitejs/plugin-react'
+  import { viteSingleFile } from 'vite-plugin-singlefile'
+
+  export default defineConfig({
+    plugins: [react(), viteSingleFile()],
+  })
+
+
+════════════════════════════════════════════════════════════════════════════════
+SESSION ORDER
+════════════════════════════════════════════════════════════════════════════════
+
+Work strictly one session at a time. Do not proceed to the next session
+until all tests for the current session pass and npm run dev shows correct
+behaviour in the browser.
+
+SESSION 1 — ALREADY COMPLETE
+  schema, parser, serialiser, roundtrip tests all passing.
+  Do not regenerate these files.
+
+SESSION 2 — Core Tree UI (no editing yet)
+  - Scaffold React + Vite project structure
+  - App.css with all CSS variables
+  - App.jsx with useReducer document state and useState UI state
+  - NoteTree.jsx, ChannelRow.jsx, NoteRow.jsx rendering the 3-level tree
+  - Expand/collapse for channels and notes using the mandatory
+    Set replacement pattern described above
+  - ActionRow.jsx rendering a read-only grid row (no editing yet)
+  - Load one of the sample CSV fixtures via csvParser and display it
+  - Verify all channel rows appear, expanding a channel shows its notes,
+    expanding a note shows its action rows
+
+SESSION 3 — Drag and Drop Reorder
+  - Add @dnd-kit/sortable to ActionRow reordering within a note group
+  - Drag handle visible on left of each action row
+  - Reorder persists in document state
+  - Add groups.test.js drag reorder test
+
+SESSION 4 — Cell Editing + Validation
+  - CellEditor.jsx with all input types
+  - Per-cell validation, error borders, tooltips
+  - Action-type-based disabled columns
+  - Tab/Shift-Tab navigation skipping disabled cells
+  - Add validation.test.js new cases
+
+SESSION 5 — Detail Panel + Undo Stack
+  - DetailPanel.jsx with grouped form layout
+  - undoStack.js helper
+  - All edits go through undo stack
+  - Ctrl+Z / Ctrl+Y keyboard shortcuts
+  - Toolbar undo/redo buttons with tooltips
+  - undo.test.js passing
+
+SESSION 6 — Toolbar + Comments + File IO + Add Note + New Preset
+  - Toolbar.jsx with all buttons
+  - CommentsPanel.jsx collapsible textarea
+  - AddNoteControl.jsx
+  - NewPresetModal.jsx
+  - File open: drag-drop on window + file picker button
+  - Save CSV: serialise and download as set_nnnn.csv
+  - New Preset: empty document, prompt for preset number
+  - Dirty flag in window title
+
+SESSION 7 — Fill Sequential Modal
+  - FillSequentialModal.jsx with all controls
+  - Preview list with conflict warnings
+  - Apply as single undo step
+  - fill.test.js passing
+
+SESSION 8 — Build + Offline Verification
+  - Install vite-plugin-singlefile
+  - Configure vite.config.js
+  - npm run build
+  - Open dist/index.html directly from filesystem (file:// protocol)
+  - Verify all features work with no server and no internet
+  - Full test suite must pass
+
+
+════════════════════════════════════════════════════════════════════════════════
+SAMPLE CSV FIXTURE DATA
+Replace the placeholders below with actual file contents
+════════════════════════════════════════════════════════════════════════════════
+
+--- Keyboards1_set_0001.csv ---
+[paste contents of Keyboards1_-_set_0001.csv here]
+
+--- Keyboards1_set_0004.csv ---
+[paste contents of Keyboards1_-_set_0004.csv here]
+
+--- Percussion_set_0001.csv ---
+[paste contents of Percussion_-_set_0001.csv here]
+
+
+================================================================================
+END OF PROMPT
+================================================================================
